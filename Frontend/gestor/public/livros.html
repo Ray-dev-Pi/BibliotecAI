@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BibliotecAI - Gestão de Livros</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body {
+      font-family: 'Nunito', sans-serif;
+      background-color: #f8f9fa;
+    }
+    .sidebar-item:hover {
+      background-color: rgba(255, 255, 255, 0.15);
+    }
+    .sidebar-item.active {
+      background-color: rgba(255, 255, 255, 0.25);
+    }
+    .card {
+      transition: transform 0.2s ease;
+    }
+    .card:hover {
+      transform: translateY(-3px);
+    }
+    .modal {
+      display: none; 
+      position: fixed; 
+      z-index: 50; 
+      left: 0;
+      top: 0;
+      width: 100%; 
+      height: 100%; 
+      overflow: auto; 
+      background-color: rgba(0,0,0,0.5); 
+    }
+    .modal.show { display: flex; align-items: center; justify-content: center; }
+    .modal-content {
+      background-color: white;
+      padding: 25px;
+      border-radius: 16px;
+      width: 90%;
+      max-width: 500px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      animation: slideDown 0.3s ease;
+    }
+    @keyframes slideDown {
+      from { transform: translateY(-20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+  </style>
+</head>
+
+<body class="bg-gray-50">
+
+  <!-- Sidebar -->
+  <div class="sidebar fixed top-0 left-0 h-full bg-green-700 text-white w-64 p-4 shadow-lg z-30">
+    <div class="flex items-center justify-center mb-8 mt-4">
+      <div class="text-2xl font-bold flex items-center">
+        <i class="fas fa-book-reader mr-2"></i>
+        <span class="sidebar-text">BibliotecAI</span>
+      </div>
+    </div>
+
+    <nav>
+      <ul class="space-y-4">
+        <li>
+          <a href="dashboard.html" class="sidebar-item flex items-center p-3 rounded-lg hover:bg-green-600 transition-all">
+            <i class="fas fa-tachometer-alt text-xl w-8"></i>
+            <span class="sidebar-text">Dashboard</span>
+          </a>
+        </li>
+        <li>
+          <a href="livros.html" class="sidebar-item flex items-center p-3 rounded-lg bg-green-600 transition-all active">
+            <i class="fas fa-book text-xl w-8"></i>
+            <span class="sidebar-text">Livros</span>
+          </a>
+        </li>
+        <li>
+          <a href="usuarios.html" class="sidebar-item flex items-center p-3 rounded-lg hover:bg-green-600 transition-all">
+            <i class="fas fa-users text-xl w-8"></i>
+            <span class="sidebar-text">Usuários</span>
+          </a>
+        </li>
+        <li>
+          <a href="relatorios.html" class="sidebar-item flex items-center p-3 rounded-lg hover:bg-green-600 transition-all">
+            <i class="fas fa-chart-line text-xl w-8"></i>
+            <span class="sidebar-text">Relatórios</span>
+          </a>
+        </li>
+        <li>
+          <button onclick="logout()" class="sidebar-item flex items-center p-3 rounded-lg hover:bg-green-600 transition-all w-full">
+            <i class="fas fa-sign-out-alt text-xl w-8"></i>
+            <span class="sidebar-text">Sair</span>
+          </button>
+        </li>
+      </ul>
+    </nav>
+  </div>
+
+  <!-- Conteúdo principal -->
+  <div class="main-content ml-64 p-6">
+    <header class="mb-8 flex justify-between items-center">
+      <h1 class="text-3xl font-bold text-green-800">Gestão de Livros</h1>
+      <div class="flex items-center">
+        <div class="relative">
+          <input type="text" placeholder="Buscar livro..." class="pl-10 pr-4 py-2 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 w-64">
+          <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+        </div>
+      </div>
+    </header>
+
+    <!-- Botão -->
+    <div class="mb-6">
+      <button id="btn-add-livro" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg shadow-md font-semibold transition-all">
+        <i class="fas fa-plus mr-2"></i>Adicionar Novo Livro
+      </button>
+    </div>
+
+    <!-- Tabela -->
+    <div class="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200">
+      <table class="min-w-full text-sm text-gray-700">
+        <thead class="bg-green-700 text-white">
+          <tr>
+            <th class="py-3 px-4 text-left">Área do Conhecimento</th>
+            <th class="py-3 px-4 text-left">ID</th>
+            <th class="py-3 px-4 text-left">Tombo</th>
+            <th class="py-3 px-4 text-left">Autor</th>
+            <th class="py-3 px-4 text-left">Título</th>
+            <th class="py-3 px-4 text-left">Vol</th>
+            <th class="py-3 px-4 text-left">Edição</th>
+            <th class="py-3 px-4 text-left">Local</th>
+            <th class="py-3 px-4 text-left">Editora</th>
+            <th class="py-3 px-4 text-left">Ano</th>
+            <th class="py-3 px-4 text-center">Ações</th>
+          </tr>
+        </thead>
+        <tbody id="livros-list" class="divide-y divide-gray-200">
+          <!-- Populado dinamicamente -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div id="modal-livro" class="modal">
+    <div class="modal-content">
+      <span class="close text-gray-600 float-right text-2xl cursor-pointer">&times;</span>
+      <h3 id="modal-title" class="text-2xl font-bold text-green-700 mb-4">Adicionar Livro</h3>
+      <form id="form-livro" class="space-y-3">
+        <input type="hidden" id="livro-id">
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label class="font-semibold">Tombo:</label>
+            <input type="number" id="tombo" class="w-full border rounded-lg p-2" required>
+          </div>
+          <div>
+            <label class="font-semibold">Volume (Vol):</label>
+            <input type="text" id="vol" class="w-full border rounded-lg p-2">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label class="font-semibold">Ano:</label>
+            <input type="number" id="ano" class="w-full border rounded-lg p-2" required>
+          </div>
+          <div>
+            <label class="font-semibold">Edição:</label>
+            <input type="text" id="edicao" class="w-full border rounded-lg p-2">
+          </div>
+        </div>
+
+        <div>
+          <label class="font-semibold">Área do conhecimento:</label>
+          <input type="text" id="area" class="w-full border rounded-lg p-2" required>
+        </div>
+
+        <div>
+          <label class="font-semibold">Autor:</label>
+          <input type="text" id="autor" class="w-full border rounded-lg p-2" required>
+        </div>
+
+        <div>
+          <label class="font-semibold">Título:</label>
+          <input type="text" id="titulo" class="w-full border rounded-lg p-2" required>
+        </div>
+
+        <div>
+          <label class="font-semibold">Local:</label>
+          <input type="text" id="local" class="w-full border rounded-lg p-2">
+        </div>
+
+        <div>
+          <label class="font-semibold">Editora:</label>
+          <input type="text" id="editora" class="w-full border rounded-lg p-2" required>
+        </div>
+
+        <button type="submit" class="w-full bg-green-700 text-white py-2 rounded-lg font-semibold hover:bg-green-800 transition">
+          Salvar
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+  <script>
+    function logout() {
+    window.location.href = "confirmar_saida.html";
+  }
+    // Substituir botões por ícones no render da tabela (feito via JS)
+    function renderTable() {
+      livrosList.innerHTML = "";
+      livros.forEach((livro, index) => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td class="py-2 px-4">${livro.area}</td>
+          <td class="py-2 px-4">${livro.id}</td>
+          <td class="py-2 px-4">${livro.tombo}</td>
+          <td class="py-2 px-4">${livro.autor}</td>
+          <td class="py-2 px-4">${livro.titulo}</td>
+          <td class="py-2 px-4">${livro.vol}</td>
+          <td class="py-2 px-4">${livro.edicao}</td>
+          <td class="py-2 px-4">${livro.local}</td>
+          <td class="py-2 px-4">${livro.editora}</td>
+          <td class="py-2 px-4">${livro.ano}</td>
+          <td class="py-2 px-4 text-center">
+            <button class="text-blue-600 hover:text-blue-800" onclick="editLivro(${index})"><i class='fas fa-pen'></i></button>
+            <button class="text-red-600 hover:text-red-800 ml-3" onclick="deleteLivro(${index})"><i class='fas fa-trash'></i></button>
+          </td>
+        `;
+        livrosList.appendChild(row);
+      });
+    }
+  </script>
+</body>
+</html>

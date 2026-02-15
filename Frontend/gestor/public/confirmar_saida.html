@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BibliotecAI - Confirmar Saída</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body {
+      font-family: 'Nunito', sans-serif;
+      background-color: #f9fafb;
+    }
+  </style>
+</head>
+<body class="flex flex-col items-center justify-center h-screen bg-gray-100">
+
+  <!-- Container principal -->
+  <div class="bg-white shadow-xl rounded-2xl p-10 text-center w-full max-w-lg border-t-4 border-green-600">
+    <div class="flex justify-center mb-6">
+      <i class="fas fa-sign-out-alt text-green-600 text-6xl"></i>
+    </div>
+
+    <h1 class="text-2xl font-bold text-gray-800 mb-3">Tem certeza que deseja sair?</h1>
+    <p class="text-gray-600 mb-8">Ao confirmar, você será desconectado da sua conta no <strong>BibliotecAI</strong>.</p>
+
+    <!-- Botões -->
+    <div class="flex justify-center gap-5">
+      <button onclick="cancelarSaida()" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-2 rounded-lg font-semibold transition-all flex items-center gap-2">
+        <i class="fas fa-arrow-left"></i> Cancelar
+      </button>
+
+      <button onclick="confirmarSaida()" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-semibold transition-all flex items-center gap-2">
+        <i class="fas fa-check"></i> Confirmar Saída
+      </button>
+    </div>
+  </div>
+
+
+   <script>
+    function cancelarSaida() {
+      // Volta para a página anterior (dashboard ou onde o usuário estava)
+      window.history.back();
+    }
+
+    function confirmarSaida() {
+      // 1. LIMPA a autenticação no armazenamento local
+      localStorage.removeItem('isAuthenticated');
+      localStorage.removeItem('userType');
+      
+      // 2. Redireciona para a página de login
+      window.location.href = 'login.html';
+    }
+</script>
+</body>
+</html>
+</script>
+  </body>
+    </html>
+      </body>
+        </html>
+      

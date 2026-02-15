@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BibliotecAI - Relatórios</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- libs PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    body { font-family: 'Nunito', sans-serif; background-color: #f8f9fa; }
+    .sidebar-item:hover { background-color: rgba(255,255,255,0.15); }
+    .sidebar-item.active { background-color: rgba(255,255,255,0.25); }
+    .card { transition: transform 0.2s ease; }
+    .card:hover { transform: translateY(-3px); }
+  </style>
+</head>
+
+<body class="bg-gray-50">
+
+  <!-- Sidebar -->
+  <div class="sidebar fixed top-0 left-0 h-full bg-green-700 text-white w-64 p-4 shadow-lg z-30">
+    <div class="flex items-center justify-center mb-8 mt-4">
+      <div class="text-2xl font-bold flex items-center">
+        <i class="fas fa-book-reader mr-2"></i>
+        <span class="sidebar-text">BibliotecAI</span>
+      </div>
+    </div>
+
+    <nav>
+      <ul class="space-y-4">
+        <li><a href="dashboard.html" class="sidebar-item flex items-center p-3 rounded-lg hover:bg-green-600"><i class="fas fa-tachometer-alt text-xl w-8"></i><span class="sidebar-text">Dashboard</span></a></li>
+        <li><a href="livros.html" class="sidebar-item flex items-center p-3 rounded-lg hover:bg-green-600"><i class="fas fa-book text-xl w-8"></i><span class="sidebar-text">Livros</span></a></li>
+        <li><a href="usuarios.html" class="sidebar-item flex items-center p-3 rounded-lg hover:bg-green-600"><i class="fas fa-users text-xl w-8"></i><span class="sidebar-text">Usuários</span></a></li>
+        <li><a href="relatorios.html" class="sidebar-item flex items-center p-3 rounded-lg bg-green-600 active"><i class="fas fa-chart-line text-xl w-8"></i><span class="sidebar-text">Relatórios</span></a></li>
+        <li><button onclick="logout()" class="sidebar-item flex items-center p-3 rounded-lg hover:bg-green-600 w-full"><i class="fas fa-sign-out-alt text-xl w-8"></i><span class="sidebar-text">Sair</span></button></li>
+      </ul>
+    </nav>
+  </div>
+
+  <!-- Conteúdo -->
+  <div class="main-content ml-64 p-6" id="relatorio-container">
+    <header class="mb-8 flex justify-between items-center">
+      <h1 class="text-3xl font-bold text-green-800">Relatórios Gerais</h1>
+
+      <div class="flex items-center gap-3">
+        <button id="btn-pdf" class="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-lg shadow-md font-semibold flex items-center gap-2 transition-all">
+          <i class="fas fa-file-pdf"></i> Gerar PDF
+        </button>
+      </div>
+    </header>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8" id="cards-container"></div>
+
+    <section class="bg-white rounded-xl shadow-md p-6 border border-gray-200">
+      <h2 class="text-2xl font-bold text-green-700 mb-4">Usuários com Pendências</h2>
+      <table class="min-w-full text-sm text-gray-700">
+        <thead class="bg-green-700 text-white">
+          <tr>
+            <th class="py-3 px-4 text-left">Nome</th>
+            <th class="py-3 px-4 text-left">Tipo</th>
+            <th class="py-3 px-4 text-left">Telefone</th>
+            <th class="py-3 px-4 text-left">Livro Pendente</th>
+            <th class="py-3 px-4 text-left">Dias em Atraso</th>
+          </tr>
+        </thead>
+        <tbody id="pendencias-list" class="divide-y divide-gray-200"></tbody>
+      </table>
+    </section>
+  </div>
+
+  <!-- script final -->
+  <script src="relatorios.js"></script>
+
+  <script>
+  function logout() {
+    window.location.href = "confirmar_saida.html";
+  }
+  </script>
+</body>
+</html>

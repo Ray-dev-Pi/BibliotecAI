@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BibliotecAI - Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="login.css">
+</head>
+<body class="flex items-center justify-center min-h-screen bg-gray-100">
+
+    <ul class="circles">
+        <li></li>
+        <li></li>
+        <li></li>
+        <li></li>
+        <li></li>
+        <li></li>
+        <li></li>
+        <li></li>
+        <li></li>
+        <li></li>
+    </ul>
+
+    <div class="login-card bg-white shadow-2xl rounded-2xl p-8 w-full max-w-sm z-10">
+        
+        <div class="text-center mb-8">
+            <i class="fas fa-book-reader text-green-600 text-5xl mb-3"></i>
+            <h1 class="text-3xl font-extrabold text-gray-800">BibliotecAI</h1>
+            <p class="text-gray-500 mt-1">Selecione seu perfil para acessar</p>
+        </div>
+
+        <form id="login-form" class="space-y-6">
+
+            <div>
+                <label for="tipo" class="block text-sm font-medium text-gray-700 mb-1">Entrar como</label>
+                <select id="tipo" name="tipo" required 
+                        class="w-full pl-3 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 transition-all">
+                    <option value="Gestor">Gestor</option>
+                    <option value="Professor">Professor</option>
+                    <option value="Aluno">Aluno</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="identificador" id="label-identificador" class="block text-sm font-medium text-gray-700 mb-1">Usuário</label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                        <i id="icon-identificador" class="fas fa-user"></i>
+                    </span>
+                    <input type="text" id="identificador" name="identificador" placeholder="Seu nome de usuário" required 
+                           class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 transition-all">
+                </div>
+            </div>
+
+            <div>
+                <label for="senha" class="block text-sm font-medium text-gray-700 mb-1">Senha</label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                        <i class="fas fa-lock"></i>
+                    </span>
+                    <input type="password" id="senha" name="senha" placeholder="Sua senha secreta" required 
+                           class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 transition-all">
+                </div>
+            </div>
+            
+            <p id="error-message" class="text-sm text-red-600 text-center font-semibold hidden">
+                <i class="fas fa-exclamation-circle mr-1"></i> Credenciais inválidas. Tente novamente.
+            </p>
+
+            <button type="submit" id="btn-login"
+                    class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 rounded-lg shadow-md transition-all duration-200 flex items-center justify-center gap-2">
+                <i class="fas fa-sign-in-alt"></i> 
+                Entrar
+            </button>
+            
+        </form>
+
+    </div>
+    
+    <script src="login.js"></script>
+</body>
+</html>

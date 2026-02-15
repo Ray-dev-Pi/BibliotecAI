@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BibliotecAI - Login do Gestor</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Nunito', sans-serif;
+      background: linear-gradient(to right, #166534, #22c55e);
+    }
+  </style>
+</head>
+<body class="flex items-center justify-center min-h-screen">
+
+  <div class="bg-white p-8 rounded-2xl shadow-lg w-96">
+    <div class="text-center mb-6">
+      <h1 class="text-3xl font-bold text-green-700 mb-2">BibliotecAI</h1>
+      <p class="text-gray-500">Acesso ao painel do gestor</p>
+    </div>
+
+    <form id="loginForm" class="space-y-4">
+      <div>
+        <label class="block text-gray-700">Usuário</label>
+        <input type="text" id="usuario" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500">
+      </div>
+
+      <div>
+        <label class="block text-gray-700">Senha</label>
+        <input type="password" id="senha" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500">
+      </div>
+
+      <button type="submit" class="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-all">
+        Entrar
+      </button>
+
+      <p id="msgErro" class="text-center text-red-600 mt-3 hidden">Usuário ou senha inválidos.</p>
+    </form>
+  </div>
+
+  <script src="login.js"></script>
+</body>
+</html>

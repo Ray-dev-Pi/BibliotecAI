@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BibliotecAI - Painel do Gestor</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body {
+      font-family: 'Nunito', sans-serif;
+      background-color: #f8f9fa;
+    }
+    .sidebar {
+      transition: all 0.3s;
+    }
+    .sidebar-item {
+      transition: all 0.2s;
+    }
+    .sidebar-item:hover {
+      background-color: rgba(255, 255, 255, 0.15);
+    }
+    .sidebar-item.active {
+      background-color: rgba(255, 255, 255, 0.25);
+    }
+    .card {
+      transition: transform 0.2s ease;
+    }
+    .card:hover {
+      transform: translateY(-3px);
+    }
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 70px;
+      }
+      .sidebar-text {
+        display: none;
+      }
+      .main-content {
+        margin-left: 70px;
+      }
+    }
+  </style>
+</head>
+
+<body class="bg-gray-50">
+
+  <!-- Sidebar -->
+  <div class="sidebar fixed top-0 left-0 h-full bg-green-700 text-white w-64 p-4 shadow-lg z-30">
+    <div class="flex items-center justify-center mb-8 mt-4">
+      <div class="text-2xl font-bold flex items-center">
+        <i class="fas fa-book-reader mr-2"></i>
+        <span class="sidebar-text">BibliotecAI</span>
+      </div>
+    </div>
+
+    <nav>
+      <ul class="space-y-4">
+        <li>
+          <a href="dashboard.html" class="sidebar-item flex items-center p-3 rounded-lg bg-green-600 hover:bg-green-800 transition-all active">
+            <i class="fas fa-tachometer-alt text-xl w-8"></i>
+            <span class="sidebar-text">Dashboard</span>
+          </a>
+        </li>
+        <li>
+          <a href="livros.html" class="sidebar-item flex items-center p-3 rounded-lg hover:bg-green-600 transition-all">
+            <i class="fas fa-book text-xl w-8"></i>
+            <span class="sidebar-text">Livros</span>
+          </a>
+        </li>
+        <li>
+          <a href="usuarios.html" class="sidebar-item flex items-center p-3 rounded-lg hover:bg-green-600 transition-all">
+            <i class="fas fa-users text-xl w-8"></i>
+            <span class="sidebar-text">Usuários</span>
+          </a>
+        </li>
+        <li>
+          <a href="relatorios.html" class="sidebar-item flex items-center p-3 rounded-lg hover:bg-green-600 transition-all">
+            <i class="fas fa-chart-line text-xl w-8"></i>
+            <span class="sidebar-text">Relatórios</span>
+          </a>
+        </li>
+        <li>
+          <button onclick="logout()" class="sidebar-item flex items-center p-3 rounded-lg hover:bg-green-600 transition-all w-full">
+            <i class="fas fa-sign-out-alt text-xl w-8"></i>
+            <span class="sidebar-text">Sair</span>
+          </button>
+        </li>
+      </ul>
+    </nav>
+
+    <div class="absolute bottom-4 left-0 right-0 px-4">
+      <div class="flex items-center justify-center">
+        <div class="text-sm text-center sidebar-text">
+          <div class="mb-2">Olá, <span class="font-bold">Gestor</span>!</div>
+          <div class="flex justify-center">
+            <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Perfil" class="w-10 h-10 rounded-full border-2 border-white">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content ml-64 p-6">
+    <header class="mb-8">
+      <div class="flex justify-between items-center">
+        <h1 class="text-3xl font-bold text-green-800">Painel do Gestor</h1>
+        <div class="flex items-center">
+          <div class="relative">
+            <input type="text" placeholder="Buscar..." class="pl-10 pr-4 py-2 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 w-64">
+            <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+          </div>
+        </div>
+      </div>
+    </header>
+<!-- Área de Empréstimos -->
+<section class="mt-10">
+  <h2 class="text-2xl font-bold text-green-700 mb-4 flex items-center gap-2">
+    <i class="fas fa-handshake text-green-700"></i> Área de Empréstimos
+  </h2>
+
+  <!-- Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6" id="cards-emprestimos">
+    <!-- Populado dinamicamente -->
+  </div>
+
+  <!-- Últimos empréstimos -->
+  <div class="bg-white shadow-md rounded-xl p-6 border border-gray-200">
+    <h3 class="text-xl font-bold text-green-700 mb-4 flex items-center gap-2">
+      <i class="fas fa-clock text-green-600"></i> Últimos Empréstimos
+    </h3>
+    <table class="min-w-full text-sm text-gray-700">
+      <thead class="bg-green-700 text-white">
+        <tr>
+          <th class="py-3 px-4 text-left">Usuário</th>
+          <th class="py-3 px-4 text-left">Livro</th>
+          <th class="py-3 px-4 text-left">Data Empréstimo</th>
+          <th class="py-3 px-4 text-left">Status</th>
+        </tr>
+      </thead>
+      <tbody id="lista-emprestimos" class="divide-y divide-gray-200">
+        <!-- Populado via JS -->
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<script src="dashboard.js"></script>
+
+    <!-- Dashboard Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="card bg-white rounded-xl p-6 shadow-md border-l-4 border-green-600">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-lg font-semibold text-gray-700">Livros</h2>
+            <p class="text-3xl font-bold text-green-700">128</p>
+          </div>
+          <i class="fas fa-book text-green-600 text-3xl"></i>
+        </div>
+      </div>
+
+      <div class="card bg-white rounded-xl p-6 shadow-md border-l-4 border-blue-600">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-lg font-semibold text-gray-700">Usuários</h2>
+            <p class="text-3xl font-bold text-blue-700">342</p>
+          </div>
+          <i class="fas fa-users text-blue-600 text-3xl"></i>
+        </div>
+      </div>
+
+      <div class="card bg-white rounded-xl p-6 shadow-md border-l-4 border-yellow-500">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-lg font-semibold text-gray-700">Leituras Ativas</h2>
+            <p class="text-3xl font-bold text-yellow-600">76</p>
+          </div>
+          <i class="fas fa-book-open text-yellow-500 text-3xl"></i>
+        </div>
+      </div>
+
+      <div class="card bg-white rounded-xl p-6 shadow-md border-l-4 border-red-600">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-lg font-semibold text-gray-700">Alertas</h2>
+            <p class="text-3xl font-bold text-red-600">4</p>
+          </div>
+          <i class="fas fa-exclamation-triangle text-red-600 text-3xl"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section -->
+    <section class="mt-10 bg-white rounded-xl shadow-md p-6">
+      <h2 class="text-2xl font-bold text-green-700 mb-4">Atividades Recentes</h2>
+      <ul class="space-y-3">
+        <li class="flex justify-between items-center border-b pb-2">
+          <span>📘 Novo livro adicionado: <b>Dom Casmurro</b></span>
+          <span class="text-sm text-gray-500">há 2 horas</span>
+        </li>
+        <li class="flex justify-between items-center border-b pb-2">
+          <span>👤 Usuário <b>Maria Souza</b> concluiu <b>O Pequeno Príncipe</b></span>
+          <span class="text-sm text-gray-500">há 5 horas</span>
+        </li>
+        <li class="flex justify-between items-center">
+          <span>⚙️ Sistema atualizado para versão 1.2.3</span>
+          <span class="text-sm text-gray-500">há 1 dia</span>
+        </li>
+      </ul>
+    </section>
+  </div>
+  <!-- Script de logout -->
+<script>
+  function logout() {
+    window.location.href = "confirmar_saida.html";
+  }
+</script>
+</body>
+</html>
+    
