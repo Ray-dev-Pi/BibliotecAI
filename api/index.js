@@ -78,18 +78,37 @@ app.get("/api/usuarios", async (req, res) => {
   }
 });
 
-// 👥 USUÁRIOS (CRIAR)
+// 👥 USUÁRIOS (CRIAR) — salva tipo, matricula, turma, cpf, telefone
 app.post("/api/usuarios", async (req, res) => {
   try {
-    const { nome, email } = req.body;
+    const { nome, tipo, matricula, turma, cpf, telefone, email } = req.body;
 
     if (!nome || !nome.trim()) {
       return res.status(400).json({ erro: "Nome é obrigatório." });
     }
 
+    const tipoFinal = (tipo === "Aluno" || tipo === "Professor") ? tipo : "Outro";
+
+    // Regras mínimas (ajuste se quiser)
+    if (tipoFinal === "Aluno" && (!matricula || !turma || !telefone)) {
+      return res.status(400).json({ erro: "Aluno precisa de matrícula, turma e telefone." });
+    }
+    if (tipoFinal === "Professor" && (!cpf || !telefone)) {
+      return res.status(400).json({ erro: "Professor precisa de CPF e telefone." });
+    }
+
     const [result] = await db.query(
-      "INSERT INTO usuarios (nome, email) VALUES (?, ?)",
-      [nome.trim(), email?.trim() || null]
+      `INSERT INTO usuarios (nome, tipo, matricula, turma, cpf, telefone, email)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        nome.trim(),
+        tipoFinal,
+        matricula?.trim() || null,
+        turma?.trim() || null,
+        cpf?.trim() || null,
+        telefone?.trim() || null,
+        email?.trim() || null
+      ]
     );
 
     const [rows] = await db.query("SELECT * FROM usuarios WHERE id = ?", [result.insertId]);
@@ -167,7 +186,6 @@ app.post("/api/login", async (req, res) => {
 
 // ======================== DEBUG DB ========================
 
-// Health check do banco (mostra erro real, sem crash)
 app.get("/api/health", async (req, res) => {
   try {
     const [[r]] = await db.query("SELECT NOW() as now, DATABASE() as db;");
@@ -182,7 +200,7 @@ app.get("/api/health", async (req, res) => {
   }
 });
 
-// Cria tabelas manualmente quando você acessar /api/setup
+// Cria/Atualiza tabelas quando acessar /api/setup
 app.get("/api/setup", async (req, res) => {
   try {
     await db.query(`CREATE TABLE IF NOT EXISTS gestores (
@@ -196,9 +214,21 @@ app.get("/api/setup", async (req, res) => {
     await db.query(`CREATE TABLE IF NOT EXISTS usuarios (
       id INT AUTO_INCREMENT PRIMARY KEY,
       nome VARCHAR(100) NOT NULL,
-      email VARCHAR(150),
+      tipo ENUM('Aluno','Professor','Outro') NOT NULL DEFAULT 'Outro',
+      matricula VARCHAR(50) NULL,
+      turma VARCHAR(50) NULL,
+      cpf VARCHAR(20) NULL,
+      telefone VARCHAR(30) NULL,
+      email VARCHAR(150) NULL,
       criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`);
+
+    // Upgrade seguro: adiciona colunas se não existirem
+    await db.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS tipo ENUM('Aluno','Professor','Outro') NOT NULL DEFAULT 'Outro'`);
+    await db.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS matricula VARCHAR(50) NULL`);
+    await db.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS turma VARCHAR(50) NULL`);
+    await db.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS cpf VARCHAR(20) NULL`);
+    await db.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS telefone VARCHAR(30) NULL`);
 
     await db.query(`CREATE TABLE IF NOT EXISTS livros (
       id INT AUTO_INCREMENT PRIMARY KEY,
