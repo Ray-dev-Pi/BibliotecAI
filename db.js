@@ -1,5 +1,3 @@
-// db.js — Conexão MySQL para Vercel (usando MYSQL_URL)
-
 import mysql from "mysql2/promise";
 import dotenv from "dotenv";
 
@@ -9,11 +7,17 @@ let pool;
 
 export const db = (() => {
   if (!pool) {
-    pool = mysql.createPool(process.env.MYSQL_URL, {
+    if (!process.env.MYSQL_URL) {
+      throw new Error("MYSQL_URL não definida nas Environment Variables da Vercel.");
+    }
+
+    pool = mysql.createPool({
+      uri: process.env.MYSQL_URL,
       waitForConnections: true,
       connectionLimit: 5,
       queueLimit: 0,
-      connectTimeout: 10000,
+      connectTimeout: 15000,
+      ssl: { rejectUnauthorized: false }
     });
   }
   return pool;

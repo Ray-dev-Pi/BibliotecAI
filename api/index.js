@@ -5,68 +5,32 @@ import cors from "cors";
 import bodyParser from "body-parser";
 import bcrypt from "bcrypt";
 import dotenv from "dotenv";
-import { db } from "../db.js"; // ⚠️ ajuste se seu db.js estiver em outro lugar
+import path from "path";
+import { fileURLToPath } from "url";
+import { db } from "../db.js";
 
 dotenv.config();
 
 const app = express();
-// ======================= AUTO CREATE TABLES =======================
-
-async function criarTabelas() {
-  try {
-    await db.query(`
-      CREATE TABLE IF NOT EXISTS gestores (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        nome VARCHAR(100) NOT NULL,
-        usuario VARCHAR(100) UNIQUE NOT NULL,
-        senha VARCHAR(255) NOT NULL,
-        criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    await db.query(`
-      CREATE TABLE IF NOT EXISTS usuarios (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        nome VARCHAR(100) NOT NULL,
-        email VARCHAR(150),
-        criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    await db.query(`
-      CREATE TABLE IF NOT EXISTS livros (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        titulo VARCHAR(150) NOT NULL,
-        autor VARCHAR(100),
-        estoque INT DEFAULT 0,
-        criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    await db.query(`
-      CREATE TABLE IF NOT EXISTS emprestimos (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        usuario_id INT,
-        livro_id INT,
-        data_emprestimo DATE,
-        status VARCHAR(50),
-        criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    console.log("✅ Tabelas verificadas/criadas com sucesso!");
-  } catch (err) {
-    console.error("❌ Erro ao criar tabelas:", err);
-  }
-}
-
-criarTabelas();
 
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
 
-// ======================== ROTAS ========================
+// ======================== FRONTEND (static) ========================
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Servir arquivos estáticos (CSS, JS, imagens, etc)
+app.use(express.static(path.join(__dirname, "../Frontend/gestor/public")));
+
+// Abrir login.html na rota principal "/"
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "../Frontend/gestor/public/login.html"));
+});
+
+// ======================== ROTAS (API) ========================
 
 // 📚 LIVROS
 app.get("/api/livros", async (req, res) => {
@@ -94,8 +58,8 @@ app.get("/api/usuarios", async (req, res) => {
 app.get("/api/emprestimos", async (req, res) => {
   try {
     const [rows] = await db.query(`
-      SELECT e.id, u.nome AS usuario, l.titulo AS livro, 
-             DATE_FORMAT(e.data_emprestimo, '%d/%m/%Y') AS data, 
+      SELECT e.id, u.nome AS usuario, l.titulo AS livro,
+             DATE_FORMAT(e.data_emprestimo, '%d/%m/%Y') AS data,
              e.status
       FROM emprestimos e
       LEFT JOIN usuarios u ON e.usuario_id = u.id
@@ -149,76 +113,63 @@ app.post("/api/login", async (req, res) => {
       mensagem: "Login bem-sucedido!",
       gestor: { id: gestor.id, nome: gestor.nome, usuario: gestor.usuario }
     });
-
   } catch (err) {
     console.error("Erro no login:", err);
     res.status(500).json({ erro: "Erro interno no servidor." });
   }
 });
 
-// =====================================================
+// ======================== DEBUG DB ========================
 
-// ❌ NÃO usar app.listen()
-// Vercel cria o servidor automaticamente
-// ======================== FRONTEND ========================
-
-import path from "path";
-import { fileURLToPath } from "url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Servir arquivos estáticos (CSS, JS, imagens, etc)
-app.use(express.static(path.join(__dirname, "../Frontend/gestor/public")));
-
-// Abrir login.html na rota principal "/"
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "../Frontend/gestor/public/login.html"));
+// Health check do banco (mostra erro real, sem crash)
+app.get("/api/health", async (req, res) => {
+  try {
+    const [[r]] = await db.query("SELECT NOW() as now, DATABASE() as db;");
+    const [tables] = await db.query("SHOW TABLES;");
+    res.json({ ok: true, r, tablesCount: tables.length });
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      error: err.message,
+      code: err.code
+    });
+  }
 });
-// ======================== SETUP / DEBUG DB ========================
 
-// Cria tabelas na hora (forçado)
+// Cria tabelas manualmente quando você acessar /api/setup
 app.get("/api/setup", async (req, res) => {
   try {
-    await db.query(`
-      CREATE TABLE IF NOT EXISTS gestores (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        nome VARCHAR(100) NOT NULL,
-        usuario VARCHAR(100) UNIQUE NOT NULL,
-        senha VARCHAR(255) NOT NULL,
-        criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+    await db.query(`CREATE TABLE IF NOT EXISTS gestores (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      nome VARCHAR(100) NOT NULL,
+      usuario VARCHAR(100) UNIQUE NOT NULL,
+      senha VARCHAR(255) NOT NULL,
+      criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`);
 
-    await db.query(`
-      CREATE TABLE IF NOT EXISTS usuarios (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        nome VARCHAR(100) NOT NULL,
-        email VARCHAR(150),
-        criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+    await db.query(`CREATE TABLE IF NOT EXISTS usuarios (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      nome VARCHAR(100) NOT NULL,
+      email VARCHAR(150),
+      criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`);
 
-    await db.query(`
-      CREATE TABLE IF NOT EXISTS livros (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        titulo VARCHAR(150) NOT NULL,
-        autor VARCHAR(100),
-        estoque INT DEFAULT 0,
-        criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+    await db.query(`CREATE TABLE IF NOT EXISTS livros (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      titulo VARCHAR(150) NOT NULL,
+      autor VARCHAR(100),
+      estoque INT DEFAULT 0,
+      criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`);
 
-    await db.query(`
-      CREATE TABLE IF NOT EXISTS emprestimos (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        usuario_id INT NULL,
-        livro_id INT NULL,
-        data_emprestimo DATE NULL,
-        status VARCHAR(50) NULL,
-        criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+    await db.query(`CREATE TABLE IF NOT EXISTS emprestimos (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      usuario_id INT NULL,
+      livro_id INT NULL,
+      data_emprestimo DATE NULL,
+      status VARCHAR(50) NULL,
+      criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`);
 
     const [tables] = await db.query("SHOW TABLES;");
     res.json({ ok: true, tables });
@@ -226,18 +177,8 @@ app.get("/api/setup", async (req, res) => {
     res.status(500).json({
       ok: false,
       error: err.message,
+      code: err.code
     });
-  }
-});
-
-// Health check do banco (pra saber se conectou)
-app.get("/api/health", async (req, res) => {
-  try {
-    const [[dbInfo]] = await db.query("SELECT DATABASE() AS db, NOW() AS now;");
-    const [tables] = await db.query("SHOW TABLES;");
-    res.json({ ok: true, dbInfo, tablesCount: tables.length });
-  } catch (err) {
-    res.status(500).json({ ok: false, error: err.message });
   }
 });
 
