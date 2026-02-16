@@ -10,6 +10,57 @@ import { db } from "../db.js"; // ⚠️ ajuste se seu db.js estiver em outro lu
 dotenv.config();
 
 const app = express();
+// ======================= AUTO CREATE TABLES =======================
+
+async function criarTabelas() {
+  try {
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS gestores (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        nome VARCHAR(100) NOT NULL,
+        usuario VARCHAR(100) UNIQUE NOT NULL,
+        senha VARCHAR(255) NOT NULL,
+        criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS usuarios (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        nome VARCHAR(100) NOT NULL,
+        email VARCHAR(150),
+        criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS livros (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        titulo VARCHAR(150) NOT NULL,
+        autor VARCHAR(100),
+        estoque INT DEFAULT 0,
+        criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS emprestimos (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        usuario_id INT,
+        livro_id INT,
+        data_emprestimo DATE,
+        status VARCHAR(50),
+        criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    console.log("✅ Tabelas verificadas/criadas com sucesso!");
+  } catch (err) {
+    console.error("❌ Erro ao criar tabelas:", err);
+  }
+}
+
+criarTabelas();
 
 // Middleware
 app.use(cors());
