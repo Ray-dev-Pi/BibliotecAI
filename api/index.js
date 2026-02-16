@@ -175,5 +175,70 @@ app.use(express.static(path.join(__dirname, "../Frontend/gestor/public")));
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "../Frontend/gestor/public/login.html"));
 });
+// ======================== SETUP / DEBUG DB ========================
+
+// Cria tabelas na hora (forçado)
+app.get("/api/setup", async (req, res) => {
+  try {
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS gestores (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        nome VARCHAR(100) NOT NULL,
+        usuario VARCHAR(100) UNIQUE NOT NULL,
+        senha VARCHAR(255) NOT NULL,
+        criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS usuarios (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        nome VARCHAR(100) NOT NULL,
+        email VARCHAR(150),
+        criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS livros (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        titulo VARCHAR(150) NOT NULL,
+        autor VARCHAR(100),
+        estoque INT DEFAULT 0,
+        criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS emprestimos (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        usuario_id INT NULL,
+        livro_id INT NULL,
+        data_emprestimo DATE NULL,
+        status VARCHAR(50) NULL,
+        criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    const [tables] = await db.query("SHOW TABLES;");
+    res.json({ ok: true, tables });
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      error: err.message,
+    });
+  }
+});
+
+// Health check do banco (pra saber se conectou)
+app.get("/api/health", async (req, res) => {
+  try {
+    const [[dbInfo]] = await db.query("SELECT DATABASE() AS db, NOW() AS now;");
+    const [tables] = await db.query("SHOW TABLES;");
+    res.json({ ok: true, dbInfo, tablesCount: tables.length });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
 
 export default app;
