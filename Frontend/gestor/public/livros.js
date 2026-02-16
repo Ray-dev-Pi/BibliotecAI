@@ -1,4 +1,4 @@
-// livros.js — Livros no MySQL via API (Vercel/Railway) [COMPLETO]
+// livros.js — Livros no MySQL via API (Vercel/Railway)
 
 const modalL = document.getElementById("modal-livro");
 const btnAddL = document.getElementById("btn-add-livro");
@@ -10,7 +10,12 @@ const livroIdInput = document.getElementById("livro-id");
 
 let livros = [];
 
-// ---------- API ----------
+// ---------- helpers ----------
+function v(id) {
+  const el = document.getElementById(id);
+  return el ? (el.value ?? "").toString().trim() : "";
+}
+
 async function apiGetLivros() {
   const resp = await fetch("/api/livros");
   if (!resp.ok) throw new Error("Falha ao carregar livros.");
@@ -21,9 +26,8 @@ async function apiCreateLivro(payload) {
   const resp = await fetch("/api/livros", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
+    body: JSON.stringify(payload),
   });
-
   const data = await resp.json().catch(() => ({}));
   if (!resp.ok) throw new Error(data.erro || "Erro ao cadastrar livro.");
   return data;
@@ -57,33 +61,47 @@ window.addEventListener("click", (e) => {
 formL.addEventListener("submit", async (e) => {
   e.preventDefault();
 
-  const payload = {
-    tombo: document.getElementById("tombo").value,
-    vol: document.getElementById("vol").value,
-    ano: document.getElementById("ano").value,
-    edicao: document.getElementById("edicao").value,
-    area: document.getElementById("area").value,
-    autor: document.getElementById("autor").value,
-    titulo: document.getElementById("titulo").value,
-    local: document.getElementById("local").value,
-    editora: document.getElementById("editora").value,
-    estoque: 1
-  };
+  // pega os valores SEM depender de variável global
+  const tombo = v("tombo");
+  const vol = v("vol");
+  const ano = v("ano");
+  const edicao = v("edicao");
+  const area = v("area");
+  const autor = v("autor");
+  const titulo = v("titulo");
+  const local = v("local");
+  const editora = v("editora");
 
-  // validações (iguais ao backend)
-  if (!payload.area || !payload.area.trim()) return alert("Área do conhecimento é obrigatória.");
-  if (payload.tombo === undefined || payload.tombo === null || String(payload.tombo).trim() === "") return alert("Tombo é obrigatório.");
-  if (!payload.autor || !payload.autor.trim()) return alert("Autor é obrigatório.");
-  if (!payload.titulo || !payload.titulo.trim()) return alert("Título é obrigatório.");
-  if (!payload.editora || !payload.editora.trim()) return alert("Editora é obrigatória.");
-  if (payload.ano === undefined || payload.ano === null || String(payload.ano).trim() === "") return alert("Ano é obrigatório.");
+  console.log("[DEBUG LIVRO]", { tombo, vol, ano, edicao, area, autor, titulo, local, editora });
+
+  if (!area) return alert("Área do conhecimento é obrigatória.");
+  if (!autor) return alert("Autor é obrigatório.");
+  if (!titulo) return alert("Título é obrigatório.");
+  if (!editora) return alert("Editora é obrigatória.");
+  if (!tombo) return alert("Tombo é obrigatório.");
+  if (!ano) return alert("Ano é obrigatório.");
 
   try {
-    await apiCreateLivro(payload);
+    // Agora que sua tabela já tem colunas extras, vamos salvar tudo
+    await apiCreateLivro({
+      area,
+      tombo: Number(tombo),
+      autor,
+      titulo,
+      vol: vol || null,
+      edicao: edicao || null,
+      local: local || null,
+      editora,
+      ano: Number(ano),
+      estoque: 1,
+    });
+
     await carregarLivros();
+
     modalL.classList.remove("show");
     formL.reset();
   } catch (err) {
+    console.error(err);
     alert(err.message);
   }
 });
@@ -92,26 +110,23 @@ formL.addEventListener("submit", async (e) => {
 function renderLivros() {
   livrosList.innerHTML = "";
 
-  livros.forEach((livro, index) => {
+  livros.forEach((l, index) => {
     const row = document.createElement("tr");
     row.innerHTML = `
-      <td class="py-2 px-4">${livro.area ?? "-"}</td>
-      <td class="py-2 px-4">${livro.id ?? "-"}</td>
-      <td class="py-2 px-4">${livro.tombo ?? "-"}</td>
-      <td class="py-2 px-4">${livro.autor ?? "-"}</td>
-      <td class="py-2 px-4">${livro.titulo ?? "-"}</td>
-      <td class="py-2 px-4">${livro.vol ?? "-"}</td>
-      <td class="py-2 px-4">${livro.edicao ?? "-"}</td>
-      <td class="py-2 px-4">${livro.local ?? "-"}</td>
-      <td class="py-2 px-4">${livro.editora ?? "-"}</td>
-      <td class="py-2 px-4">${livro.ano ?? "-"}</td>
-      <td class="py-2 px-4 text-center">
-        <span class="text-gray-400">—</span>
-      </td>
+      <td class="py-2 px-4">${l.area ?? "-"}</td>
+      <td class="py-2 px-4">${l.id ?? "-"}</td>
+      <td class="py-2 px-4">${l.tombo ?? "-"}</td>
+      <td class="py-2 px-4">${l.autor ?? "-"}</td>
+      <td class="py-2 px-4">${l.titulo ?? "-"}</td>
+      <td class="py-2 px-4">${l.vol ?? "-"}</td>
+      <td class="py-2 px-4">${l.edicao ?? "-"}</td>
+      <td class="py-2 px-4">${l.local ?? "-"}</td>
+      <td class="py-2 px-4">${l.editora ?? "-"}</td>
+      <td class="py-2 px-4">${l.ano ?? "-"}</td>
+      <td class="py-2 px-4 text-center">-</td>
     `;
     livrosList.appendChild(row);
   });
 }
 
-// ---------- INIT ----------
 document.addEventListener("DOMContentLoaded", carregarLivros);
