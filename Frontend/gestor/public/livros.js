@@ -1,4 +1,4 @@
-// livros.js — Livros no MySQL via API (Vercel/Railway)
+// livros.js — Livros no MySQL via API (Vercel/Railway) [COMPLETO]
 
 const modalL = document.getElementById("modal-livro");
 const btnAddL = document.getElementById("btn-add-livro");
@@ -23,6 +23,7 @@ async function apiCreateLivro(payload) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload)
   });
+
   const data = await resp.json().catch(() => ({}));
   if (!resp.ok) throw new Error(data.erro || "Erro ao cadastrar livro.");
   return data;
@@ -56,41 +57,30 @@ window.addEventListener("click", (e) => {
 formL.addEventListener("submit", async (e) => {
   e.preventDefault();
 
-  // Seus inputs do HTML:
-  const tombo = document.getElementById("tombo").value;
-  const vol = document.getElementById("vol").value;
-  const ano = document.getElementById("ano").value;
-  const edicao = document.getElementById("edicao").value;
-  const area = document.getElementById("area").value;
-  const autor = document.getElementById("autor").value;
-  const titulo = document.getElementById("titulo").value;
-  const local = document.getElementById("local").value;
-  const editora = document.getElementById("editora").value;
+  const payload = {
+    tombo: document.getElementById("tombo").value,
+    vol: document.getElementById("vol").value,
+    ano: document.getElementById("ano").value,
+    edicao: document.getElementById("edicao").value,
+    area: document.getElementById("area").value,
+    autor: document.getElementById("autor").value,
+    titulo: document.getElementById("titulo").value,
+    local: document.getElementById("local").value,
+    editora: document.getElementById("editora").value,
+    estoque: 1
+  };
 
-  // ⚠️ Seu backend hoje salva só: titulo, autor, estoque.
-  // Então aqui vamos usar:
-  // - titulo = título do livro
-  // - autor = autor do livro
-  // - estoque = 1 (ou você pode definir estoque fixo)
-  // E os outros campos (tombo, area, etc.) só vão ser realmente salvos
-  // quando você atualizar a tabela 'livros' no banco e o POST do backend.
-
-  if (!titulo || !titulo.trim()) return alert("Título é obrigatório.");
-  if (!autor || !autor.trim()) return alert("Autor é obrigatório.");
-  if (!area || !area.trim()) return alert("Área do conhecimento é obrigatória.");
-  if (!editora || !editora.trim()) return alert("Editora é obrigatória.");
-  if (!tombo) return alert("Tombo é obrigatório.");
-  if (!ano) return alert("Ano é obrigatório.");
+  // validações (iguais ao backend)
+  if (!payload.area || !payload.area.trim()) return alert("Área do conhecimento é obrigatória.");
+  if (payload.tombo === undefined || payload.tombo === null || String(payload.tombo).trim() === "") return alert("Tombo é obrigatório.");
+  if (!payload.autor || !payload.autor.trim()) return alert("Autor é obrigatório.");
+  if (!payload.titulo || !payload.titulo.trim()) return alert("Título é obrigatório.");
+  if (!payload.editora || !payload.editora.trim()) return alert("Editora é obrigatória.");
+  if (payload.ano === undefined || payload.ano === null || String(payload.ano).trim() === "") return alert("Ano é obrigatório.");
 
   try {
-    await apiCreateLivro({
-      titulo: titulo.trim(),
-      autor: autor.trim(),
-      estoque: 1
-    });
-
+    await apiCreateLivro(payload);
     await carregarLivros();
-
     modalL.classList.remove("show");
     formL.reset();
   } catch (err) {
@@ -102,20 +92,22 @@ formL.addEventListener("submit", async (e) => {
 function renderLivros() {
   livrosList.innerHTML = "";
 
-  livros.forEach((l) => {
+  livros.forEach((livro, index) => {
     const row = document.createElement("tr");
     row.innerHTML = `
-      <td class="py-2 px-4">-</td>
-      <td class="py-2 px-4">${l.id ?? "-"}</td>
-      <td class="py-2 px-4">-</td>
-      <td class="py-2 px-4">${l.autor ?? "-"}</td>
-      <td class="py-2 px-4">${l.titulo ?? "-"}</td>
-      <td class="py-2 px-4">-</td>
-      <td class="py-2 px-4">-</td>
-      <td class="py-2 px-4">-</td>
-      <td class="py-2 px-4">-</td>
-      <td class="py-2 px-4">-</td>
-      <td class="py-2 px-4 text-center">-</td>
+      <td class="py-2 px-4">${livro.area ?? "-"}</td>
+      <td class="py-2 px-4">${livro.id ?? "-"}</td>
+      <td class="py-2 px-4">${livro.tombo ?? "-"}</td>
+      <td class="py-2 px-4">${livro.autor ?? "-"}</td>
+      <td class="py-2 px-4">${livro.titulo ?? "-"}</td>
+      <td class="py-2 px-4">${livro.vol ?? "-"}</td>
+      <td class="py-2 px-4">${livro.edicao ?? "-"}</td>
+      <td class="py-2 px-4">${livro.local ?? "-"}</td>
+      <td class="py-2 px-4">${livro.editora ?? "-"}</td>
+      <td class="py-2 px-4">${livro.ano ?? "-"}</td>
+      <td class="py-2 px-4 text-center">
+        <span class="text-gray-400">—</span>
+      </td>
     `;
     livrosList.appendChild(row);
   });
