@@ -1,4 +1,4 @@
-// /api/index.js — Backend Serverless do BibliotecAI
+// /api/index.js — Backend Serverless do BibliotecAI (Vercel + Railway MySQL)
 
 import express from "express";
 import cors from "cors";
@@ -18,7 +18,6 @@ app.use(cors());
 app.use(bodyParser.json());
 
 // ======================== FRONTEND (static) ========================
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -32,10 +31,14 @@ app.get("/", (req, res) => {
 
 // ======================== ROTAS (API) ========================
 
-// 📚 LIVROS (LISTAR)
+// 📚 LIVROS (LISTAR) — completo
 app.get("/api/livros", async (req, res) => {
   try {
-    const [rows] = await db.query("SELECT * FROM livros ORDER BY criado_em DESC");
+    const [rows] = await db.query(`
+      SELECT id, area, tombo, autor, titulo, vol, edicao, local, editora, ano, estoque, criado_em
+      FROM livros
+      ORDER BY criado_em DESC
+    `);
     res.json(rows);
   } catch (err) {
     console.error("Erro ao buscar livros:", err);
@@ -43,20 +46,45 @@ app.get("/api/livros", async (req, res) => {
   }
 });
 
-// 📚 LIVROS (CRIAR)
+// 📚 LIVROS (CRIAR) — completo
 app.post("/api/livros", async (req, res) => {
   try {
-    const { titulo, autor, estoque } = req.body;
+    const { area, tombo, autor, titulo, vol, edicao, local, editora, ano, estoque } = req.body;
 
-    if (!titulo || !titulo.trim()) {
-      return res.status(400).json({ erro: "Título é obrigatório." });
+    if (!titulo || !titulo.trim()) return res.status(400).json({ erro: "Título é obrigatório." });
+    if (!autor || !autor.trim()) return res.status(400).json({ erro: "Autor é obrigatório." });
+    if (!area || !area.trim()) return res.status(400).json({ erro: "Área do conhecimento é obrigatória." });
+    if (!editora || !editora.trim()) return res.status(400).json({ erro: "Editora é obrigatória." });
+
+    if (tombo === undefined || tombo === null || String(tombo).trim() === "") {
+      return res.status(400).json({ erro: "Tombo é obrigatório." });
+    }
+    if (ano === undefined || ano === null || String(ano).trim() === "") {
+      return res.status(400).json({ erro: "Ano é obrigatório." });
     }
 
-    const estoqueNum = Number.isFinite(Number(estoque)) ? Number(estoque) : 0;
+    const tomboNum = Number(tombo);
+    const anoNum = Number(ano);
+    const estoqueNum = Number.isFinite(Number(estoque)) ? Number(estoque) : 1;
+
+    if (!Number.isFinite(tomboNum)) return res.status(400).json({ erro: "Tombo inválido." });
+    if (!Number.isFinite(anoNum)) return res.status(400).json({ erro: "Ano inválido." });
 
     const [result] = await db.query(
-      "INSERT INTO livros (titulo, autor, estoque) VALUES (?, ?, ?)",
-      [titulo.trim(), autor?.trim() || null, estoqueNum]
+      `INSERT INTO livros (area, tombo, autor, titulo, vol, edicao, local, editora, ano, estoque)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        area.trim(),
+        tomboNum,
+        autor.trim(),
+        titulo.trim(),
+        vol?.trim() || null,
+        edicao?.trim() || null,
+        local?.trim() || null,
+        editora.trim(),
+        anoNum,
+        estoqueNum
+      ]
     );
 
     const [rows] = await db.query("SELECT * FROM livros WHERE id = ?", [result.insertId]);
@@ -214,7 +242,6 @@ app.get("/api/setup", async (req, res) => {
       criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`);
 
-    // upgrade seguro: tenta criar colunas e ignora se já existirem
     const addColumn = async (sql) => {
       try {
         await db.query(sql);
@@ -223,20 +250,32 @@ app.get("/api/setup", async (req, res) => {
       }
     };
 
+    // upgrade seguro (usuarios)
     await addColumn(`ALTER TABLE usuarios ADD COLUMN tipo VARCHAR(20) NOT NULL DEFAULT 'Outro'`);
     await addColumn(`ALTER TABLE usuarios ADD COLUMN matricula VARCHAR(50) NULL`);
     await addColumn(`ALTER TABLE usuarios ADD COLUMN turma VARCHAR(50) NULL`);
     await addColumn(`ALTER TABLE usuarios ADD COLUMN cpf VARCHAR(20) NULL`);
     await addColumn(`ALTER TABLE usuarios ADD COLUMN telefone VARCHAR(30) NULL`);
 
+    // cria tabela base (livros)
     await db.query(`CREATE TABLE IF NOT EXISTS livros (
       id INT AUTO_INCREMENT PRIMARY KEY,
       titulo VARCHAR(150) NOT NULL,
-      autor VARCHAR(100),
+      autor VARCHAR(100) NULL,
       estoque INT DEFAULT 0,
       criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`);
 
+    // upgrade seguro (livros)
+    await addColumn(`ALTER TABLE livros ADD COLUMN area VARCHAR(120) NULL`);
+    await addColumn(`ALTER TABLE livros ADD COLUMN tombo INT NULL`);
+    await addColumn(`ALTER TABLE livros ADD COLUMN vol VARCHAR(30) NULL`);
+    await addColumn(`ALTER TABLE livros ADD COLUMN edicao VARCHAR(30) NULL`);
+    await addColumn(`ALTER TABLE livros ADD COLUMN local VARCHAR(80) NULL`);
+    await addColumn(`ALTER TABLE livros ADD COLUMN editora VARCHAR(120) NULL`);
+    await addColumn(`ALTER TABLE livros ADD COLUMN ano INT NULL`);
+
+    // emprestimos
     await db.query(`CREATE TABLE IF NOT EXISTS emprestimos (
       id INT AUTO_INCREMENT PRIMARY KEY,
       usuario_id INT NULL,
@@ -246,8 +285,13 @@ app.get("/api/setup", async (req, res) => {
       criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`);
 
-    const [cols] = await db.query("SHOW COLUMNS FROM usuarios;");
-    res.json({ ok: true, usuarios_columns: cols.map(c => c.Field) });
+    const [colsUsuarios] = await db.query("SHOW COLUMNS FROM usuarios;");
+    const [colsLivros] = await db.query("SHOW COLUMNS FROM livros;");
+    res.json({
+      ok: true,
+      usuarios_columns: colsUsuarios.map(c => c.Field),
+      livros_columns: colsLivros.map(c => c.Field)
+    });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message, code: err.code });
   }
