@@ -32,7 +32,7 @@ app.get("/", (req, res) => {
 
 // ======================== ROTAS (API) ========================
 
-// 📚 LIVROS
+// 📚 LIVROS (LISTAR)
 app.get("/api/livros", async (req, res) => {
   try {
     const [rows] = await db.query("SELECT * FROM livros ORDER BY criado_em DESC");
@@ -43,7 +43,31 @@ app.get("/api/livros", async (req, res) => {
   }
 });
 
-// 👥 USUÁRIOS
+// 📚 LIVROS (CRIAR)
+app.post("/api/livros", async (req, res) => {
+  try {
+    const { titulo, autor, estoque } = req.body;
+
+    if (!titulo || !titulo.trim()) {
+      return res.status(400).json({ erro: "Título é obrigatório." });
+    }
+
+    const estoqueNum = Number.isFinite(Number(estoque)) ? Number(estoque) : 0;
+
+    const [result] = await db.query(
+      "INSERT INTO livros (titulo, autor, estoque) VALUES (?, ?, ?)",
+      [titulo.trim(), autor?.trim() || null, estoqueNum]
+    );
+
+    const [rows] = await db.query("SELECT * FROM livros WHERE id = ?", [result.insertId]);
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    console.error("Erro ao cadastrar livro:", err);
+    res.status(500).json({ erro: "Erro ao cadastrar livro" });
+  }
+});
+
+// 👥 USUÁRIOS (LISTAR)
 app.get("/api/usuarios", async (req, res) => {
   try {
     const [rows] = await db.query("SELECT * FROM usuarios ORDER BY criado_em DESC");
@@ -54,7 +78,29 @@ app.get("/api/usuarios", async (req, res) => {
   }
 });
 
-// 🤝 EMPRÉSTIMOS
+// 👥 USUÁRIOS (CRIAR)
+app.post("/api/usuarios", async (req, res) => {
+  try {
+    const { nome, email } = req.body;
+
+    if (!nome || !nome.trim()) {
+      return res.status(400).json({ erro: "Nome é obrigatório." });
+    }
+
+    const [result] = await db.query(
+      "INSERT INTO usuarios (nome, email) VALUES (?, ?)",
+      [nome.trim(), email?.trim() || null]
+    );
+
+    const [rows] = await db.query("SELECT * FROM usuarios WHERE id = ?", [result.insertId]);
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    console.error("Erro ao cadastrar usuário:", err);
+    res.status(500).json({ erro: "Erro ao cadastrar usuário" });
+  }
+});
+
+// 🤝 EMPRÉSTIMOS (LISTAR)
 app.get("/api/emprestimos", async (req, res) => {
   try {
     const [rows] = await db.query(`
