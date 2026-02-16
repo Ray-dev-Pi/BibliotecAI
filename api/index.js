@@ -89,7 +89,6 @@ app.post("/api/usuarios", async (req, res) => {
 
     const tipoFinal = (tipo === "Aluno" || tipo === "Professor") ? tipo : "Outro";
 
-    // Regras mínimas (ajuste se quiser)
     if (tipoFinal === "Aluno" && (!matricula || !turma || !telefone)) {
       return res.status(400).json({ erro: "Aluno precisa de matrícula, turma e telefone." });
     }
@@ -192,15 +191,11 @@ app.get("/api/health", async (req, res) => {
     const [tables] = await db.query("SHOW TABLES;");
     res.json({ ok: true, r, tablesCount: tables.length });
   } catch (err) {
-    res.status(500).json({
-      ok: false,
-      error: err.message,
-      code: err.code
-    });
+    res.status(500).json({ ok: false, error: err.message, code: err.code });
   }
 });
 
-// Cria/Atualiza tabelas quando acessar /api/setup
+// ✅ Cria/Atualiza tabelas quando acessar /api/setup (compatível com Railway)
 app.get("/api/setup", async (req, res) => {
   try {
     await db.query(`CREATE TABLE IF NOT EXISTS gestores (
@@ -211,24 +206,28 @@ app.get("/api/setup", async (req, res) => {
       criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`);
 
+    // cria a tabela com o mínimo (se existir, mantém)
     await db.query(`CREATE TABLE IF NOT EXISTS usuarios (
       id INT AUTO_INCREMENT PRIMARY KEY,
       nome VARCHAR(100) NOT NULL,
-      tipo ENUM('Aluno','Professor','Outro') NOT NULL DEFAULT 'Outro',
-      matricula VARCHAR(50) NULL,
-      turma VARCHAR(50) NULL,
-      cpf VARCHAR(20) NULL,
-      telefone VARCHAR(30) NULL,
       email VARCHAR(150) NULL,
       criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`);
 
-    // Upgrade seguro: adiciona colunas se não existirem
-    await db.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS tipo ENUM('Aluno','Professor','Outro') NOT NULL DEFAULT 'Outro'`);
-    await db.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS matricula VARCHAR(50) NULL`);
-    await db.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS turma VARCHAR(50) NULL`);
-    await db.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS cpf VARCHAR(20) NULL`);
-    await db.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS telefone VARCHAR(30) NULL`);
+    // upgrade seguro: tenta criar colunas e ignora se já existirem
+    const addColumn = async (sql) => {
+      try {
+        await db.query(sql);
+      } catch (err) {
+        if (err.code !== "ER_DUP_FIELDNAME") throw err;
+      }
+    };
+
+    await addColumn(`ALTER TABLE usuarios ADD COLUMN tipo VARCHAR(20) NOT NULL DEFAULT 'Outro'`);
+    await addColumn(`ALTER TABLE usuarios ADD COLUMN matricula VARCHAR(50) NULL`);
+    await addColumn(`ALTER TABLE usuarios ADD COLUMN turma VARCHAR(50) NULL`);
+    await addColumn(`ALTER TABLE usuarios ADD COLUMN cpf VARCHAR(20) NULL`);
+    await addColumn(`ALTER TABLE usuarios ADD COLUMN telefone VARCHAR(30) NULL`);
 
     await db.query(`CREATE TABLE IF NOT EXISTS livros (
       id INT AUTO_INCREMENT PRIMARY KEY,
@@ -247,14 +246,10 @@ app.get("/api/setup", async (req, res) => {
       criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`);
 
-    const [tables] = await db.query("SHOW TABLES;");
-    res.json({ ok: true, tables });
+    const [cols] = await db.query("SHOW COLUMNS FROM usuarios;");
+    res.json({ ok: true, usuarios_columns: cols.map(c => c.Field) });
   } catch (err) {
-    res.status(500).json({
-      ok: false,
-      error: err.message,
-      code: err.code
-    });
+    res.status(500).json({ ok: false, error: err.message, code: err.code });
   }
 });
 
