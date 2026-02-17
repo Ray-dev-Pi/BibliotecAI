@@ -13,14 +13,14 @@
     .sidebar-item.active { background-color: rgba(255,255,255,0.25); }
     .modal { display: none; position: fixed; z-index: 50; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
     .modal.show { display: flex; align-items: center; justify-content: center; }
-    .modal-content { background: white; padding: 25px; border-radius: 16px; width: 90%; max-width: 520px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); animation: slideDown 0.3s ease; }
+    .modal-content { background: white; padding: 25px; border-radius: 16px; width: 90%; max-width: 720px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); animation: slideDown 0.3s ease; }
     @keyframes slideDown { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
   </style>
 </head>
 
 <body class="bg-gray-50">
 
-  <!-- Sidebar -->
+  <!-- Sidebar (mantenha a sua como já está) -->
   <div class="sidebar fixed top-0 left-0 h-full bg-green-700 text-white w-64 p-4 shadow-lg z-30">
     <div class="flex items-center justify-center mb-8 mt-4">
       <div class="text-2xl font-bold flex items-center">
@@ -35,7 +35,6 @@
         <li><a href="livros.html" class="sidebar-item flex items-center p-3 rounded-lg hover:bg-green-600 transition-all"><i class="fas fa-book text-xl w-8"></i><span class="sidebar-text">Livros</span></a></li>
         <li><a href="usuarios.html" class="sidebar-item flex items-center p-3 rounded-lg hover:bg-green-600 transition-all"><i class="fas fa-users text-xl w-8"></i><span class="sidebar-text">Usuários</span></a></li>
 
-        <!-- ✅ NOVO -->
         <li><a href="emprestimos.html" class="sidebar-item flex items-center p-3 rounded-lg bg-green-600 transition-all active"><i class="fas fa-handshake text-xl w-8"></i><span class="sidebar-text">Empréstimos</span></a></li>
 
         <li><a href="relatorios.html" class="sidebar-item flex items-center p-3 rounded-lg hover:bg-green-600 transition-all"><i class="fas fa-chart-line text-xl w-8"></i><span class="sidebar-text">Relatórios</span></a></li>
@@ -56,6 +55,13 @@
       </div>
     </header>
 
+    <!-- Tabs -->
+    <div class="flex gap-2 mb-4">
+      <button id="tab-ativos" class="px-4 py-2 rounded-lg bg-green-700 text-white font-semibold">Ativos</button>
+      <button id="tab-pendencias" class="px-4 py-2 rounded-lg bg-white border text-gray-700 font-semibold">Pendências</button>
+      <button id="tab-historico" class="px-4 py-2 rounded-lg bg-white border text-gray-700 font-semibold">Histórico</button>
+    </div>
+
     <!-- Tabela -->
     <div class="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200">
       <table class="min-w-full text-sm text-gray-700">
@@ -64,7 +70,8 @@
             <th class="py-3 px-4 text-left">ID</th>
             <th class="py-3 px-4 text-left">Usuário</th>
             <th class="py-3 px-4 text-left">Livro</th>
-            <th class="py-3 px-4 text-left">Data</th>
+            <th class="py-3 px-4 text-left">Empréstimo</th>
+            <th class="py-3 px-4 text-left">Prev. Devolução</th>
             <th class="py-3 px-4 text-left">Status</th>
             <th class="py-3 px-4 text-center">Ações</th>
           </tr>
@@ -80,22 +87,59 @@
   <div id="modal-emprestimo" class="modal">
     <div class="modal-content">
       <span class="close text-gray-600 float-right text-2xl cursor-pointer">&times;</span>
+
       <h3 class="text-2xl font-bold text-green-700 mb-4">Novo Empréstimo</h3>
 
-      <form id="form-emprestimo" class="space-y-3">
-        <div>
-          <label class="font-semibold">Usuário:</label>
-          <select id="usuario_id" class="w-full border rounded-lg p-2" required>
-            <option value="">Carregando...</option>
-          </select>
+      <form id="form-emprestimo" class="space-y-4">
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div class="md:col-span-1">
+            <label class="font-semibold">Tipo:</label>
+            <select id="tipo_filtro" class="w-full border rounded-lg p-2" required>
+              <option value="">Selecione...</option>
+              <option value="Aluno">Aluno</option>
+              <option value="Professor">Professor</option>
+            </select>
+          </div>
+
+          <div class="md:col-span-2">
+            <label class="font-semibold">Pesquisar usuário:</label>
+            <input id="busca_usuario" type="text" placeholder="Digite nome..." class="w-full border rounded-lg p-2">
+          </div>
         </div>
 
         <div>
-          <label class="font-semibold">Livro (com estoque):</label>
-          <select id="livro_id" class="w-full border rounded-lg p-2" required>
-            <option value="">Carregando...</option>
+          <label class="font-semibold">Selecionar usuário:</label>
+          <select id="usuario_id" class="w-full border rounded-lg p-2" required>
+            <option value="">Selecione o tipo primeiro...</option>
           </select>
-          <p class="text-xs text-gray-500 mt-1">Mostra apenas livros com estoque &gt; 0.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label class="font-semibold">Pesquisar livro:</label>
+            <input id="busca_livro" type="text" placeholder="Digite título..." class="w-full border rounded-lg p-2">
+          </div>
+
+          <div>
+            <label class="font-semibold">Selecionar livro (estoque &gt; 0):</label>
+            <select id="livro_id" class="w-full border rounded-lg p-2" required>
+              <option value="">Carregando...</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div class="md:col-span-1">
+            <label class="font-semibold">Data/Hora do empréstimo:</label>
+            <input id="datahora_emprestimo" type="text" class="w-full border rounded-lg p-2 bg-gray-100" readonly>
+          </div>
+
+          <div class="md:col-span-2">
+            <label class="font-semibold">Data prevista de devolução:</label>
+            <input id="data_prevista" type="date" class="w-full border rounded-lg p-2" required>
+            <p class="text-xs text-gray-500 mt-1">Se atrasar 2 dias após essa data, entra em Pendências.</p>
+          </div>
         </div>
 
         <button type="submit" class="w-full bg-green-700 text-white py-2 rounded-lg font-semibold hover:bg-green-800 transition">

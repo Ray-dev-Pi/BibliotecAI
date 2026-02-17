@@ -109,9 +109,7 @@ app.post("/api/usuarios", async (req, res) => {
   try {
     const { nome, tipo, matricula, turma, cpf, telefone, email } = req.body;
 
-    if (!nome || !nome.trim()) {
-      return res.status(400).json({ erro: "Nome é obrigatório." });
-    }
+    if (!nome || !nome.trim()) return res.status(400).json({ erro: "Nome é obrigatório." });
 
     const tipoFinal = (tipo === "Aluno" || tipo === "Professor") ? tipo : "Outro";
 
@@ -144,29 +142,32 @@ app.post("/api/usuarios", async (req, res) => {
   }
 });
 
-// 🤝 EMPRÉSTIMOS (CRIAR) — com transaction e estoque seguro
+// ======================== EMPRÉSTIMOS ========================
+
+// 🤝 EMPRÉSTIMOS (CRIAR) — transaction + estoque seguro + data/hora + data prevista
 app.post("/api/emprestimos", async (req, res) => {
-  const { usuario_id, livro_id } = req.body;
+  const { usuario_id, livro_id, data_prevista } = req.body;
 
   if (!usuario_id || !livro_id) {
     return res.status(400).json({ erro: "Usuário e livro são obrigatórios." });
+  }
+  if (!data_prevista) {
+    return res.status(400).json({ erro: "Data prevista de devolução é obrigatória." });
   }
 
   const conn = await db.getConnection();
   try {
     await conn.beginTransaction();
 
-    // Verifica usuário
     const [usuario] = await conn.query("SELECT id FROM usuarios WHERE id = ?", [usuario_id]);
     if (usuario.length === 0) {
       await conn.rollback();
       return res.status(404).json({ erro: "Usuário não encontrado." });
     }
 
-    // Verifica livro e trava a linha
     const [livro] = await conn.query(
       "SELECT id, estoque FROM livros WHERE id = ? FOR UPDATE",
-      [livro_id] // ✅ corrigido aqui
+      [livro_id]
     );
 
     if (livro.length === 0) {
@@ -179,20 +180,19 @@ app.post("/api/emprestimos", async (req, res) => {
       return res.status(400).json({ erro: "Livro sem estoque disponível." });
     }
 
-    // Cria empréstimo
+    // Cria empréstimo (hora real no servidor)
     const [result] = await conn.query(
-      `INSERT INTO emprestimos (usuario_id, livro_id, data_emprestimo, status)
-       VALUES (?, ?, CURDATE(), 'Ativo')`,
-      [usuario_id, livro_id]
+      `INSERT INTO emprestimos (usuario_id, livro_id, data_hora, data_prevista, status)
+       VALUES (?, ?, NOW(), ?, 'Ativo')`,
+      [usuario_id, livro_id, data_prevista]
     );
 
-    // Baixa estoque
     await conn.query("UPDATE livros SET estoque = estoque - 1 WHERE id = ?", [livro_id]);
 
     await conn.commit();
 
     const [novo] = await db.query(
-      `SELECT e.id, e.usuario_id, e.livro_id, e.data_emprestimo, e.status,
+      `SELECT e.id, e.usuario_id, e.livro_id, e.data_hora, e.data_prevista, e.data_devolucao, e.status,
               u.nome AS usuario, l.titulo AS livro
        FROM emprestimos e
        LEFT JOIN usuarios u ON u.id = e.usuario_id
@@ -211,19 +211,21 @@ app.post("/api/emprestimos", async (req, res) => {
   }
 });
 
-// 🤝 EMPRÉSTIMOS (LISTAR) — completo
+// 🤝 EMPRÉSTIMOS (LISTAR) — ATIVOS
 app.get("/api/emprestimos", async (req, res) => {
   try {
     const [rows] = await db.query(`
       SELECT e.id, e.usuario_id, e.livro_id,
              u.nome AS usuario, l.titulo AS livro,
-             DATE_FORMAT(e.data_emprestimo, '%d/%m/%Y') AS data,
+             e.data_hora,
+             DATE_FORMAT(e.data_prevista, '%Y-%m-%d') AS data_prevista,
              e.status
       FROM emprestimos e
       LEFT JOIN usuarios u ON e.usuario_id = u.id
       LEFT JOIN livros l ON e.livro_id = l.id
-      ORDER BY e.data_emprestimo DESC
-      LIMIT 50;
+      WHERE e.status <> 'Concluído'
+      ORDER BY e.data_hora DESC
+      LIMIT 100;
     `);
     res.json(rows);
   } catch (err) {
@@ -232,7 +234,66 @@ app.get("/api/emprestimos", async (req, res) => {
   }
 });
 
-// ✅ DEVOLVER (finaliza empréstimo e devolve estoque)
+// 🚨 PENDÊNCIAS — passou 2 dias da data prevista e ainda não devolveu
+app.get("/api/emprestimos/pendencias", async (req, res) => {
+  try {
+    const [rows] = await db.query(`
+      SELECT e.id, e.usuario_id, e.livro_id,
+             u.nome AS usuario, l.titulo AS livro,
+             e.data_hora,
+             DATE_FORMAT(e.data_prevista, '%Y-%m-%d') AS data_prevista,
+             'Atrasado' AS status
+      FROM emprestimos e
+      LEFT JOIN usuarios u ON e.usuario_id = u.id
+      LEFT JOIN livros l ON e.livro_id = l.id
+      WHERE e.status <> 'Concluído'
+        AND e.data_prevista IS NOT NULL
+        AND CURDATE() > DATE_ADD(e.data_prevista, INTERVAL 2 DAY)
+      ORDER BY e.data_prevista ASC
+      LIMIT 200;
+    `);
+
+    // Opcional: marcar status no banco como Atrasado automaticamente
+    await db.query(`
+      UPDATE emprestimos
+      SET status = 'Atrasado'
+      WHERE status <> 'Concluído'
+        AND data_prevista IS NOT NULL
+        AND CURDATE() > DATE_ADD(data_prevista, INTERVAL 2 DAY)
+    `);
+
+    res.json(rows);
+  } catch (err) {
+    console.error("Erro ao buscar pendências:", err);
+    res.status(500).json({ erro: "Erro ao buscar pendências" });
+  }
+});
+
+// 📚 HISTÓRICO — concluídos
+app.get("/api/emprestimos/historico", async (req, res) => {
+  try {
+    const [rows] = await db.query(`
+      SELECT e.id, e.usuario_id, e.livro_id,
+             u.nome AS usuario, l.titulo AS livro,
+             e.data_hora,
+             DATE_FORMAT(e.data_prevista, '%Y-%m-%d') AS data_prevista,
+             e.data_devolucao,
+             e.status
+      FROM emprestimos e
+      LEFT JOIN usuarios u ON e.usuario_id = u.id
+      LEFT JOIN livros l ON e.livro_id = l.id
+      WHERE e.status = 'Concluído'
+      ORDER BY e.data_devolucao DESC
+      LIMIT 200;
+    `);
+    res.json(rows);
+  } catch (err) {
+    console.error("Erro ao buscar histórico:", err);
+    res.status(500).json({ erro: "Erro ao buscar histórico" });
+  }
+});
+
+// ✅ DEVOLVER — registra data_devolucao e devolve estoque
 app.patch("/api/emprestimos/:id/devolver", async (req, res) => {
   const emprestimoId = req.params.id;
 
@@ -255,7 +316,11 @@ app.patch("/api/emprestimos/:id/devolver", async (req, res) => {
       return res.status(400).json({ erro: "Empréstimo já está concluído." });
     }
 
-    await conn.query("UPDATE emprestimos SET status = 'Concluído' WHERE id = ?", [emprestimoId]);
+    await conn.query(
+      "UPDATE emprestimos SET status = 'Concluído', data_devolucao = NOW() WHERE id = ?",
+      [emprestimoId]
+    );
+
     await conn.query("UPDATE livros SET estoque = estoque + 1 WHERE id = ?", [emp[0].livro_id]);
 
     await conn.commit();
@@ -319,7 +384,7 @@ app.get("/api/health", async (req, res) => {
   }
 });
 
-// ✅ /api/setup — cria/atualiza tabelas
+// ✅ /api/setup — cria/atualiza tabelas (compatível com Railway)
 app.get("/api/setup", async (req, res) => {
   try {
     await db.query(`CREATE TABLE IF NOT EXISTS gestores (
@@ -342,12 +407,14 @@ app.get("/api/setup", async (req, res) => {
       catch (err) { if (err.code !== "ER_DUP_FIELDNAME") throw err; }
     };
 
+    // upgrade seguro (usuarios)
     await addColumn(`ALTER TABLE usuarios ADD COLUMN tipo VARCHAR(20) NOT NULL DEFAULT 'Outro'`);
     await addColumn(`ALTER TABLE usuarios ADD COLUMN matricula VARCHAR(50) NULL`);
     await addColumn(`ALTER TABLE usuarios ADD COLUMN turma VARCHAR(50) NULL`);
     await addColumn(`ALTER TABLE usuarios ADD COLUMN cpf VARCHAR(20) NULL`);
     await addColumn(`ALTER TABLE usuarios ADD COLUMN telefone VARCHAR(30) NULL`);
 
+    // livros
     await db.query(`CREATE TABLE IF NOT EXISTS livros (
       id INT AUTO_INCREMENT PRIMARY KEY,
       titulo VARCHAR(150) NOT NULL,
@@ -364,6 +431,7 @@ app.get("/api/setup", async (req, res) => {
     await addColumn(`ALTER TABLE livros ADD COLUMN editora VARCHAR(120) NULL`);
     await addColumn(`ALTER TABLE livros ADD COLUMN ano INT NULL`);
 
+    // emprestimos (base)
     await db.query(`CREATE TABLE IF NOT EXISTS emprestimos (
       id INT AUTO_INCREMENT PRIMARY KEY,
       usuario_id INT NULL,
@@ -372,6 +440,26 @@ app.get("/api/setup", async (req, res) => {
       status VARCHAR(50) NULL,
       criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`);
+
+    // upgrade seguro (emprestimos)
+    await addColumn(`ALTER TABLE emprestimos ADD COLUMN data_hora DATETIME NULL`);
+    await addColumn(`ALTER TABLE emprestimos ADD COLUMN data_prevista DATE NULL`);
+    await addColumn(`ALTER TABLE emprestimos ADD COLUMN data_devolucao DATETIME NULL`);
+
+    // migração leve: se data_hora estiver NULL mas data_emprestimo existir, preencher data_hora
+    await db.query(`
+      UPDATE emprestimos
+      SET data_hora = CONCAT(data_emprestimo, ' 00:00:00')
+      WHERE data_hora IS NULL AND data_emprestimo IS NOT NULL
+    `);
+
+    // garantir status padrão
+    await db.query(`
+      UPDATE emprestimos
+      SET status = 'Ativo'
+      WHERE (status IS NULL OR status = '')
+        AND (data_devolucao IS NULL)
+    `);
 
     const [colsUsuarios] = await db.query("SHOW COLUMNS FROM usuarios;");
     const [colsLivros] = await db.query("SHOW COLUMNS FROM livros;");
